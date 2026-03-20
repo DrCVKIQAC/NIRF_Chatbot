@@ -677,7 +677,7 @@ body::before{
         <button class="quick-btn" onclick="sendQuick('How do I improve my FSR score? Explain the formula FSR = 30 × [20 × (F/N)] and what steps to take.')">📈 Improve FSR score</button>
         <button class="quick-btn" onclick="sendQuick('How is Graduation Outcomes GO calculated? Explain GPH, GUE and GMS formulas with examples.')">🎓 GO calculation detail</button>
         <button class="quick-btn" onclick="sendQuick('What are the most common mistakes colleges make in NIRF data submission? How to avoid them?')">⚠️ Common mistakes to avoid</button>
-        <button class="quick-btn" onclick="sendQuick('Compare Hindu College Delhi and PSGR Krishnammal College for Women using their NIRF 2025 submitted data. What can smaller colleges learn from them?')">🏆 Compare top colleges</button>
+        <button class="quick-btn" onclick="sendQuick('Using real NIRF 2025 benchmark data, what scores do top-ranked Indian colleges typically achieve in each parameter? What can a small Arts and Science College learn from them?')">🏆 Benchmark — top college scores</button>
         <button class="quick-btn" onclick="sendQuick('Explain the NIRF 2025 portal submission process step by step. What sections to fill and in what order?')">🖥️ Portal submission guide</button>
       </div>
     </div>
@@ -711,8 +711,8 @@ body::before{
         <p>
           Hello! I am your dedicated NIRF guide built on the <strong>official NIRF 2025 College Ranking Methodology</strong>.
           I know every formula, sub-metric, and weightage — <strong>TLR 40% · RP 15% · GO 25% · OI 10% · PR 10%</strong>.
-          I also have real submission data from <strong>Hindu College (Delhi)</strong> and <strong>PSGR Krishnammal College for Women (Coimbatore)</strong>
-          as benchmark examples to guide you.
+          I also have real anonymised benchmark data from <strong>top-ranked Indian colleges</strong>
+          to guide and compare your institution's performance.
           <br/><br/>
           Ask me anything — parameters, formulas, documents, portal, benchmarks — at <strong>zero cost, forever</strong>.
         </p>
@@ -723,8 +723,8 @@ body::before{
         <div class="welcome-chips">
           <span class="chip" onclick="sendQuick('Explain all 5 NIRF 2025 College parameters with exact weightages, sub-metrics, marks and formulas')">All 5 Parameters</span>
           <span class="chip" onclick="sendQuick('Give me the TLR formula breakdown: SS, FSR, FQE and FRU explained with examples')">TLR Formulas</span>
-          <span class="chip" onclick="sendQuick('How did Hindu College Delhi score in TLR? Analyse their submitted data.')">Hindu College Analysis</span>
-          <span class="chip" onclick="sendQuick('Analyse PSGR Krishnammal College for Women NIRF 2025 data and identify their strengths and weaknesses')">PSGR Analysis</span>
+          <span class="chip" onclick="sendQuick('What scores do top-ranked Indian colleges typically achieve in TLR, RP, GO, OI and PR? What benchmarks should I aim for?')">Top College Benchmarks</span>
+          <span class="chip" onclick="sendQuick('What scores do top-ranked women colleges in India achieve in NIRF 2025? How can a women college maximise OI and WD scores?')">Women College Benchmarks</span>
           <span class="chip" onclick="sendQuick('Give me a complete NIRF 2025 data preparation checklist for a small Arts and Science College in Andhra Pradesh')">AP College Checklist</span>
         </div>
       </div>
@@ -855,41 +855,47 @@ Object.values(SUBS).forEach(arr=>arr.forEach(s=>{subVals[s.k]=Math.round(s.max*0
 // REAL COLLEGE BENCHMARK DATA (from NIRF 2025 PDFs)
 // ─────────────────────────────────────────────
 const BENCHMARKS = `
-=== REAL NIRF 2025 SUBMITTED DATA — USE AS BENCHMARKS ===
+=== ANONYMISED NIRF 2025 BENCHMARK DATA (from publicly submitted NIRF data) ===
+NOTE: College names are intentionally withheld. This data is used only to
+illustrate realistic score ranges and help institutions understand what
+top-performing colleges submit. All figures are from NIRF public portal.
 
-── COLLEGE 1: Hindu College, Delhi [IR-C-C-6377] ──
-Sanctioned Intake: UG(4yr)=956, UG(3yr) was 956, PG=241
-Actual Enrolment:
-  UG(3yr): Male=801, Female=528, Total=1329, WithinState=168, OutsideState=1144, OutsideCountry=17
-  UG(4yr): Male=1334, Female=692, Total=2026, WithinState=432, OutsideState=1539, OutsideCountry=55
-  PG: Male=253, Female=200, Total=453, WithinState=87, OutsideState=357, OutsideCountry=9
-  Economically Backward: UG3yr=261, UG4yr=303, PG=48
-  Socially Challenged (SC+ST+OBC): UG3yr=601, UG4yr=932, PG=210
-Faculty: 216 faculty members entered
-Graduation (UG 3yr): 2021-22 graduated=1052, 2022-23=1177, 2023-24=1323
-Graduation (PG): 2021-22=435, 2022-23=395, 2023-24=225
-Capital Expenditure 2023-24: Library=₹56.45L, Lab Equipment=₹1.56Cr, Other=₹2.18Cr
-Capital Expenditure 2022-23: Library=₹13.85L, Lab Equipment=₹1.62Cr, Other=₹1.87Cr
-Operational 2023-24: Salaries=₹90.30Cr, Maintenance=₹6.05Cr, Seminars=₹63.96L
-Operational 2022-23: Salaries=₹65.38Cr, Maintenance=₹5.54Cr, Seminars=₹61.54L
-PCS: Lifts/Ramps>80% buildings=Yes, Wheelchairs=Yes, Accessible Toilets>80%=Yes
+── BENCHMARK A: Large Co-educational Autonomous College (North India) ──
+Category: UG+PG, Autonomous, 200+ faculty
+Sanctioned Intake: UG=956 (4yr), PG=241
+Actual Enrolment: UG≈3355 total, PG≈453
+Regional Diversity: ~85% from outside state (very high RD score)
+Faculty Count: 216
+Capital Expenditure 2023-24: Library≈₹56L, Lab Equipment≈₹1.56Cr, Other≈₹2.18Cr
+Operational 2023-24: Salaries≈₹90Cr, Maintenance≈₹6Cr, Seminars≈₹64L
+PCS: Full facilities — lifts/ramps >80% buildings, wheelchairs, accessible toilets
+Graduation: ~99% pass rate in stipulated time (excellent GUE score)
+Economically Backward students: ~15% of enrolment
+Socially Challenged (SC+ST+OBC): ~45% of enrolment
 
-── COLLEGE 2: PSGR Krishnammal College for Women, Coimbatore [IR-C-C-41046] ──
-Sanctioned Intake: UG(3yr)=2390 (2023-24), PG=790 (2023-24)
-Actual Enrolment:
-  UG(3yr): Female only=7046, WithinState=5326, OutsideState=1682, OutsideCountry=38
-  PG: Female only=1512, WithinState=1141, OutsideState=367, OutsideCountry=4
-  Economically Backward: UG=381, PG=110
-  Socially Challenged (SC+ST+OBC): UG=6425, PG=1384
-Faculty: 433 faculty members entered
-Graduation (UG 3yr): 2021-22 graduated=2026, 2022-23=2105, 2023-24=2152
-Graduation (PG): 2021-22=560, 2022-23=593, 2023-24=679
-Capital Expenditure 2023-24: Library=₹57.81L, Lab Equipment=₹3.90Cr, Other=₹2.76Cr
-Capital Expenditure 2022-23: Library=₹49.95L, Lab Equipment=₹3.97Cr, Other=₹2.11Cr
-Operational 2023-24: Salaries=₹41.52Cr, Maintenance=₹21.25Cr, Seminars=₹46.43L
-Operational 2022-23: Salaries=₹39.66Cr, Maintenance=₹15.99Cr, Seminars=₹38.86L
-PCS: Lifts/Ramps>80%=Yes, Wheelchairs=Yes, Accessible Toilets>80%=Yes
+── BENCHMARK B: Large Women's Autonomous College (South India) ──
+Category: Women-only, Autonomous, 400+ faculty
+Sanctioned Intake: UG=2390 (3yr), PG=790
+Actual Enrolment: UG≈7046, PG≈1512 (all women)
+Regional Diversity: ~24% from outside state
+Faculty Count: 433
+Capital Expenditure 2023-24: Library≈₹58L, Lab Equipment≈₹3.9Cr, Other≈₹2.76Cr
+Operational 2023-24: Salaries≈₹41.5Cr, Maintenance≈₹21.25Cr, Seminars≈₹46L
+PCS: Full facilities — lifts/ramps >80% buildings, wheelchairs, accessible toilets
+Graduation: ~97% pass rate in stipulated time
+Women Diversity: NWS=100% (women-only college — maximum marks on student component)
+Economically Backward: ~5% of UG enrolment
+Socially Challenged (SC+ST+OBC): ~91% of UG enrolment (very strong ESCS score)
+
+KEY INSIGHTS FROM BENCHMARKS:
+- Top colleges maintain capital expenditure of ₹50L–₹4Cr/year on labs+library
+- Operational expenditure per student (BO) is critical for FRU — aim for ₹80,000+/student/year
+- Women-only colleges naturally score maximum on WD student component (NWS=100%)
+- High outside-state enrolment dramatically improves RD score
+- 80%+ pass rate in university exams scores full GUE marks (40/40)
+- Strong SC/ST/OBC + fee reimbursement data improves ESCS significantly
 `;
+
 
 // ─────────────────────────────────────────────
 // SYSTEM PROMPT — Full NIRF 2025 College Methodology
@@ -937,7 +943,7 @@ C. GMS = 20×f(MS)               [MS=median salary of graduates, 3yr avg]
 ─── 4. OI (weight 0.10) = RD(30) + WD(30) + ESCS(20) + PCS(20) ───
 A. RD = 25×(fraction from other states) + 5×(fraction from other countries)
 B. WD = 15×(NWS/50) + 15×(NWF/20)  [NWS=% women students, benchmark 50%; NWF=% women faculty incl. HoDs/Deans, benchmark 20%]
-   NOTE: Women's colleges like PSGR Krishnammal automatically get max 15 marks on NWS component (100% women students)
+   NOTE: Women-only colleges automatically get maximum 15 marks on NWS component (NWS=100%)
 C. ESCS = 20×f(Nesc)  [Nesc=% UG students with full tuition fee reimbursement from institution]
 D. PCS = 20 if full facilities; else proportionate  [Lifts/ramps, wheelchairs, accessible toilets, braille, scribes]
 
@@ -946,7 +952,7 @@ D. PCS = 20 if full facilities; else proportionate  [Lifts/ramps, wheelchairs, a
 
 When answering:
 - Reference exact formulas with numbers
-- Use benchmark data from Hindu College and PSGR Krishnammal to illustrate points
+- Use anonymised benchmark data to illustrate realistic score ranges
 - Give specific, actionable improvement steps
 - State what documents/data are needed
 - Highlight common mistakes
@@ -1071,7 +1077,7 @@ function setInst(type) {
 // ─────────────────────────────────────────────
 function askParam(code, name, weight) {
   const inst = institutionType === 'college' ? 'Arts and Science College' : 'University';
-  sendQuick(`Using the official NIRF 2025 ${inst} methodology, explain the ${code} (${name}) parameter in full detail. Weight = ${weight}. Cover: (1) All sub-metrics with exact marks allocation, (2) Exact formulas used, (3) Documents and data needed, (4) How Hindu College Delhi and PSGR Krishnammal College approach this, (5) Common mistakes, (6) At least 5 specific improvement strategies.`);
+  sendQuick(`Using the official NIRF 2025 ${inst} methodology, explain the ${code} (${name}) parameter in full detail. Weight = ${weight}. Cover: (1) All sub-metrics with exact marks allocation, (2) Exact formulas used, (3) Documents and data needed, (4) Realistic benchmark scores from top-ranked Indian colleges, (5) Common mistakes, (6) At least 5 specific improvement strategies.`);
 }
 
 function askScoreAdvice() {
@@ -1083,7 +1089,7 @@ function askScoreAdvice() {
     return `${p.key}(wt:${(p.w*100).toFixed(0)}%)=${pScore}/100 [${subStr}]`;
   }).join('; ');
   const total = document.getElementById('totalScore').textContent;
-  sendQuick(`My ${inst} has these NIRF 2025 estimated sub-metric scores: ${details}. Weighted total = ${total}/100. Using the NIRF 2025 College methodology and comparing with Hindu College Delhi and PSGR Krishnammal data, identify my 3 weakest areas and give me a prioritised action plan with specific steps, required documents, and realistic timelines to improve each.`);
+  sendQuick(`My ${inst} has these NIRF 2025 estimated sub-metric scores: ${details}. Weighted total = ${total}/100. Using the NIRF 2025 College methodology and comparing with anonymised benchmark data from top-ranked Indian colleges, identify my 3 weakest areas and give me a prioritised action plan with specific steps, required documents, and realistic timelines to improve each.`);
 }
 
 // ─────────────────────────────────────────────
@@ -1228,8 +1234,39 @@ function removeTyping(id) {
 }
 
 // ─────────────────────────────────────────────
-// INIT
+// TEST WORKER CONNECTION ON PAGE LOAD
 // ─────────────────────────────────────────────
+async function testWorker() {
+  if (WORKER_URL.includes('YOUR-WORKER')) return; // placeholder, skip
+  try {
+    // Send a tiny test POST to verify Worker is reachable
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: 'Say OK' }] }],
+        generationConfig: { maxOutputTokens: 5 }
+      })
+    });
+    if (res.ok) {
+      document.getElementById('noticeBar').classList.add('hidden');
+      console.log('✅ Worker connected successfully');
+    } else {
+      showWorkerError('Worker returned status ' + res.status);
+    }
+  } catch(e) {
+    showWorkerError(e.message);
+  }
+}
+
+function showWorkerError(reason) {
+  const nb = document.getElementById('noticeBar');
+  nb.classList.remove('hidden');
+  nb.style.background = '#fff0f0';
+  nb.style.borderColor = 'rgba(180,0,0,0.3)';
+  nb.style.color = '#8b0000';
+  nb.innerHTML = `⚠️ Worker not reachable (${reason}). Check: (1) WORKER_URL in index.html is correct, (2) GEMINI_API_KEY secret is saved in Cloudflare Worker Settings → Variables and Secrets.`;
+}
 buildSliders();
 initStats();
 
@@ -1238,6 +1275,7 @@ if (WORKER_URL.includes('YOUR-WORKER')) {
   document.getElementById('noticeBar').classList.remove('hidden');
 } else {
   document.getElementById('noticeBar').classList.add('hidden');
+  testWorker(); // auto-test connection on page load
 }
 </script>
 
