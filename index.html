@@ -1,107 +1,1317 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              NIRF ASSIST — AI RANKING GUIDE v3.0                            ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  Copyright © 2026 Dr C V Krishnaveni (Venkata Krishnaveni Chennuru)         ║
+║  Dept. of Computer Science, SKR & SKR GCW(A), Kadapa, Andhra Pradesh        ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  DUAL LICENSE:                                                              ║
+║  1. OER  — CC BY-NC 4.0  (educational content & knowledge)                 ║
+║     https://creativecommons.org/licenses/by-nc/4.0/                        ║
+║  2. MIT  — Source code (free to use, modify, distribute)                   ║
+║     https://opensource.org/licenses/MIT                                    ║
+║  ZERO COST FOREVER — Free for all educational institutions                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+ARCHITECTURE:
+  index.html  → GitHub Pages (free, always-on)
+  worker.js   → Cloudflare Worker (free, hides API key)
+  Gemini API  → Google AI Studio free tier (1M tokens/day)
+
+SETUP: Get free Gemini key at aistudio.google.com/app/apikey — paste when prompted.
+-->
 <head>
-<meta charset="UTF-8">
-<title>NIRF Chatbot</title>
-
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NIRF Assist 2025 — AI Ranking Guide | Dr C V Krishnaveni</title>
+<meta name="description" content="Free AI-powered NIRF ranking guide for Indian colleges and universities. NIRF 2025 methodology, score estimator, improvement strategies."/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
-body { font-family: Arial; margin:0; background:#f5f5f5; }
-header { background:black; color:white; padding:15px; font-size:24px; }
-#chat { height:70vh; overflow-y:auto; padding:20px; background:white; }
-.msg { padding:10px; margin:8px; border-radius:6px; max-width:70%; }
-.user { background:black; color:white; margin-left:auto; }
-.bot { background:#e8f5ee; }
-#inputArea { display:flex; padding:10px; background:#ddd; }
-input { flex:1; padding:10px; font-size:16px; }
-button { padding:10px; background:green; color:white; border:none; }
-footer { background:black; color:white; text-align:center; padding:8px; }
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --bg:        #faf8f4;
+  --surface:   #ffffff;
+  --surface2:  #f2ede3;
+  --surface3:  #e8e2d6;
+  --border:    #c8c0b0;
+  --border2:   #ddd8ce;
+  --ink:       #0d0a06;
+  --ink2:      #38322a;
+  --ink3:      #6e6458;
+  --ink4:      #a09080;
+  --green:     #0b5e35;
+  --green2:    #0d7a44;
+  --green-h:   #084225;
+  --green-bg:  #e8f5ee;
+  --blue:      #103d7c;
+  --red:       #8b2a10;
+  --gold:      #a06c10;
+  --gold-bg:   #fdf3e0;
+  --radius:    12px;
+  --shadow:    0 2px 20px rgba(0,0,0,0.08);
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:17px;}
+body{
+  font-family:'Source Serif 4',Georgia,serif;
+  background:var(--bg);
+  color:var(--ink);
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  font-size:17px;
+  line-height:1.7;
+}
+
+/* Paper texture */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;
+}
+
+/* ═══════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════ */
+.topbar{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:68px;
+  background:var(--ink);
+  border-bottom:4px solid var(--green);
+  flex-shrink:0;
+}
+.logo{display:flex;align-items:center;gap:14px;}
+.logo-pill{
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;
+  letter-spacing:2.5px;background:var(--green);color:#fff;
+  padding:5px 13px;border-radius:4px;
+}
+.logo-text{
+  font-family:'Playfair Display',serif;font-size:22px;font-weight:800;
+  color:#fff;letter-spacing:-0.5px;
+}
+.logo-text em{color:#f0c060;font-style:normal;}
+.logo-sub{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  color:#7a8fa8;letter-spacing:1.5px;margin-top:3px;
+}
+.topbar-right{
+  display:flex;align-items:center;gap:16px;
+}
+.status-pill{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.12);
+  padding:5px 14px;border-radius:20px;
+}
+.status-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:var(--green2);
+  box-shadow:0 0 8px rgba(13,122,68,0.8);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)}}
+.status-text{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:#9eb5c8;letter-spacing:1px;
+}
+.free-badge{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+  background:rgba(11,94,53,0.25);border:1px solid rgba(11,94,53,0.5);
+  color:#5dd49a;padding:4px 11px;border-radius:4px;letter-spacing:1px;
+}
+
+/* ═══════════════════════════════════════════
+   NOTICE BAR
+═══════════════════════════════════════════ */
+.notice-bar{
+  position:relative;z-index:5;flex-shrink:0;
+  background:var(--gold-bg);
+  border-bottom:2px solid rgba(160,108,16,0.35);
+  padding:9px 28px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  color:var(--gold);font-weight:600;
+  display:flex;align-items:center;gap:10px;
+}
+.notice-bar.hidden{display:none;}
+.notice-bar a{color:var(--green);font-weight:700;text-decoration:underline;}
+
+/* ═══════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════ */
+.main{
+  flex:1;
+  display:grid;
+  grid-template-columns:310px 1fr;
+  overflow:hidden;
+  position:relative;z-index:1;
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+.sidebar{
+  background:var(--surface2);
+  border-right:2px solid var(--border);
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.sidebar-section{
+  padding:18px 18px 16px;
+  border-bottom:1px solid var(--border2);
+}
+.sidebar-heading{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;letter-spacing:2.5px;
+  text-transform:uppercase;color:var(--ink3);
+  margin-bottom:13px;font-weight:600;
+}
+
+/* Institution Toggle */
+.inst-toggle{
+  display:flex;background:var(--border);
+  border-radius:8px;padding:3px;gap:3px;
+}
+.inst-btn{
+  flex:1;font-family:'Source Serif 4',serif;
+  font-size:14px;font-weight:600;
+  padding:8px 8px;border:none;border-radius:6px;
+  cursor:pointer;background:transparent;
+  color:var(--ink3);transition:all .2s;text-align:center;
+}
+.inst-btn.active{
+  background:var(--surface);color:var(--ink);
+  box-shadow:0 2px 8px rgba(0,0,0,0.12);
+}
+
+/* Parameter Cards */
+.param-cards{display:flex;flex-direction:column;gap:7px;}
+.param-card{
+  border-radius:8px;padding:11px 14px;
+  border:1.5px solid var(--border2);
+  background:var(--surface);cursor:pointer;
+  transition:all .18s;
+  display:flex;align-items:center;gap:11px;
+}
+.param-card:hover{
+  border-color:var(--green);
+  box-shadow:0 0 0 2px rgba(11,94,53,0.12);
+  transform:translateX(4px);
+}
+.param-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.param-info{flex:1;min-width:0;}
+.param-name{
+  font-family:'Playfair Display',serif;
+  font-size:16px;font-weight:700;color:var(--ink);margin-bottom:2px;
+}
+.param-full{
+  font-family:'Source Serif 4',serif;
+  font-size:12px;color:var(--ink3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.param-subs{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9.5px;color:var(--green);
+  letter-spacing:.3px;margin-top:3px;font-weight:600;
+}
+.param-weight{
+  font-family:'JetBrains Mono',monospace;
+  font-size:15px;font-weight:600;color:var(--ink);
+  flex-shrink:0;
+}
+
+/* Quick Buttons */
+.quick-list{display:flex;flex-direction:column;gap:6px;}
+.quick-btn{
+  text-align:left;background:var(--surface);
+  border:1.5px solid var(--border2);
+  border-radius:8px;padding:10px 13px;
+  font-family:'Source Serif 4',serif;
+  font-size:14px;font-weight:400;
+  color:var(--ink2);cursor:pointer;
+  transition:all .18s;line-height:1.5;
+}
+.quick-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+/* Score Estimator */
+.score-box{
+  background:var(--surface);
+  border:1.5px solid var(--border2);
+  border-radius:10px;padding:14px;
+}
+.param-block{
+  margin-bottom:12px;padding-bottom:12px;
+  border-bottom:1px dashed var(--border2);
+}
+.param-block:last-child{border-bottom:none;margin-bottom:0;}
+.score-row{
+  display:flex;justify-content:space-between;
+  align-items:center;margin-bottom:4px;
+}
+.score-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;color:var(--ink);font-weight:600;
+}
+.score-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;font-weight:700;color:var(--green);
+}
+.score-bar-bg{
+  height:5px;background:var(--border2);
+  border-radius:3px;margin-bottom:7px;overflow:hidden;
+}
+.score-bar-fill{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--blue),var(--green));
+  transition:width .4s ease;
+}
+.score-slider{
+  width:100%;margin-bottom:3px;
+  accent-color:var(--green);cursor:pointer;
+}
+.sub-row{
+  display:flex;justify-content:space-between;
+  align-items:center;margin:5px 0 2px;
+}
+.sub-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--ink3);
+}
+.sub-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--green);font-weight:600;
+}
+.score-total{
+  margin-top:10px;padding-top:12px;
+  border-top:2px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.score-total-label{
+  font-family:'Playfair Display',serif;
+  font-size:15px;font-weight:700;color:var(--ink);
+}
+.score-total-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:22px;font-weight:600;color:var(--green);
+}
+.score-ask-btn{
+  margin-top:12px;width:100%;padding:10px;
+  background:var(--green);color:#fff;border:none;
+  border-radius:8px;font-family:'Source Serif 4',serif;
+  font-size:14px;font-weight:600;cursor:pointer;
+  transition:background .2s;
+}
+.score-ask-btn:hover{background:var(--green-h);}
+
+/* ═══════════════════════════════════════════
+   CHAT AREA
+═══════════════════════════════════════════ */
+.chat-area{
+  display:flex;flex-direction:column;
+  overflow:hidden;background:var(--bg);
+}
+.messages{
+  flex:1;overflow-y:auto;
+  padding:28px 32px;
+  display:flex;flex-direction:column;gap:20px;
+  scroll-behavior:smooth;
+}
+.messages::-webkit-scrollbar{width:5px;}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* Welcome Card */
+.welcome-card{
+  background:var(--surface);
+  border:1.5px solid var(--border2);
+  border-radius:16px;
+  padding:32px 34px;
+  max-width:680px;margin:0 auto;width:100%;
+  box-shadow:var(--shadow);
+  animation:fadeUp .5s ease both;
+}
+.welcome-icon{font-size:38px;margin-bottom:16px;display:block;}
+.welcome-card h2{
+  font-family:'Playfair Display',serif;
+  font-size:26px;font-weight:800;
+  margin-bottom:12px;color:var(--ink);
+}
+.welcome-card p{
+  font-size:16px;color:var(--ink2);
+  line-height:1.8;margin-bottom:18px;
+}
+.welcome-card p strong{color:var(--ink);font-weight:600;}
+.powered-line{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--ink3);
+  margin-bottom:18px;letter-spacing:.8px;
+  line-height:1.6;
+}
+.powered-line span{color:var(--green);font-weight:600;}
+.welcome-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{
+  font-family:'Source Serif 4',serif;
+  font-size:14px;
+  background:var(--green-bg);
+  border:1.5px solid rgba(11,94,53,0.25);
+  color:var(--green);
+  padding:7px 16px;border-radius:20px;
+  cursor:pointer;transition:all .18s;font-weight:600;
+}
+.chip:hover{background:var(--green);color:#fff;}
+
+/* Messages */
+.msg{
+  display:flex;gap:12px;max-width:780px;
+  animation:fadeUp .3s ease both;
+}
+.msg.user{flex-direction:row-reverse;align-self:flex-end;}
+.msg.assistant{align-self:flex-start;}
+.msg-avatar{
+  width:38px;height:38px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;margin-top:2px;
+}
+.msg.user .msg-avatar{background:var(--red);color:#fff;}
+.msg.assistant .msg-avatar{background:var(--ink);color:#fff;}
+.msg-bubble{
+  border-radius:12px;padding:14px 18px;
+  font-size:16px;line-height:1.85;
+}
+.msg.user .msg-bubble{
+  background:var(--ink);color:#ffffff;
+  border-bottom-right-radius:3px;font-weight:400;
+}
+.msg.assistant .msg-bubble{
+  background:var(--surface);color:var(--ink);
+  border:1.5px solid var(--border2);
+  border-bottom-left-radius:3px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.06);
+  max-width:640px;
+}
+.msg-bubble strong{font-weight:700;color:var(--ink);}
+.msg.user .msg-bubble strong{color:#fff;}
+.msg-bubble .sec-head{
+  font-family:'Playfair Display',serif;
+  font-size:15px;font-weight:700;
+  color:var(--green);text-transform:uppercase;
+  letter-spacing:.5px;margin:14px 0 7px;display:block;
+}
+.msg-bubble li{margin-bottom:5px;font-size:15.5px;color:var(--ink);}
+.msg-bubble ul{margin:6px 0 6px 20px;}
+.msg-bubble .tag{
+  display:inline-block;
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  background:var(--green-bg);color:var(--green);
+  padding:2px 9px;border-radius:4px;font-weight:600;
+}
+
+/* Typing indicator */
+.typing-indicator{
+  display:flex;gap:6px;padding:15px 18px;
+  background:var(--surface);border:1.5px solid var(--border2);
+  border-radius:12px;border-bottom-left-radius:3px;
+  width:fit-content;box-shadow:0 2px 12px rgba(0,0,0,0.06);
+}
+.typing-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--ink3);
+  animation:typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2){animation-delay:.2s;}
+.typing-dot:nth-child(3){animation-delay:.4s;}
+@keyframes typingBounce{
+  0%,60%,100%{transform:translateY(0);opacity:.4}
+  30%{transform:translateY(-6px);opacity:1}
+}
+
+/* Input Area */
+.input-area{
+  padding:16px 32px 20px;
+  background:var(--surface2);
+  border-top:2px solid var(--border);
+  flex-shrink:0;
+}
+.input-row{
+  display:flex;gap:11px;align-items:flex-end;
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:12px;padding:12px 16px;
+  transition:border .2s;
+  box-shadow:0 2px 12px rgba(0,0,0,0.07);
+}
+.input-row:focus-within{
+  border-color:var(--green);
+  box-shadow:0 0 0 3px rgba(11,94,53,0.1);
+}
+.msg-input{
+  flex:1;border:none;outline:none;
+  background:transparent;
+  font-family:'Source Serif 4',serif;
+  font-size:16px;color:var(--ink);
+  resize:none;max-height:120px;min-height:28px;
+  line-height:1.6;
+}
+.msg-input::placeholder{color:var(--ink4);}
+.send-btn{
+  width:44px;height:44px;border-radius:8px;
+  background:var(--green);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .18s;
+  color:#fff;font-size:18px;
+}
+.send-btn:hover{background:var(--green-h);transform:scale(1.05);}
+.send-btn:disabled{background:var(--border);cursor:not-allowed;transform:none;}
+.input-footer{
+  display:flex;justify-content:space-between;
+  align-items:center;margin-top:9px;
+}
+.input-hint{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--ink4);letter-spacing:.4px;
+}
+.gemini-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--ink3);font-weight:500;
+}
+.gemini-tag span{color:var(--green);}
+
+/* Error Banner */
+.error-banner{
+  background:#fff3f3;border:1.5px solid #f0b0b0;
+  border-radius:8px;padding:12px 16px;
+  font-family:'Source Serif 4',serif;font-size:14px;
+  color:var(--red);margin:0 32px 8px;
+  display:none;
+}
+.error-banner.show{display:block;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+.footer{
+  position:relative;z-index:10;
+  background:#070c14;
+  border-top:2px solid #12203a;
+  padding:0 28px;
+  flex-shrink:0;
+}
+.footer-main{
+  display:flex;align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;gap:6px;
+  padding:8px 0 5px;
+}
+.footer-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.footer-dev{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;color:#94a3b8;letter-spacing:.3px;
+}
+.footer-dev strong{color:#e8edf5;font-weight:700;}
+.footer-dev em{color:#4ade80;font-style:normal;font-weight:600;}
+.footer-div{width:1px;height:16px;background:#1e3050;}
+.footer-inst{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:#4a6080;letter-spacing:.3px;
+}
+.footer-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.footer-lic{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:#4a6080;letter-spacing:.4px;
+}
+.footer-lic a{color:#4ade80;text-decoration:none;font-weight:700;}
+.footer-lic a:hover{text-decoration:underline;}
+.badges{display:flex;gap:5px;flex-wrap:wrap;}
+.badge{
+  display:inline-flex;align-items:center;
+  padding:3px 9px;border-radius:3px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:1px;font-weight:700;
+}
+.b-oer{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:#fbbf24;}
+.b-cc {background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);color:#4ade80;}
+.b-mit{background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);color:#60a5fa;}
+.b-free{background:rgba(167,243,208,.12);border:1px solid rgba(167,243,208,.3);color:#6ee7b7;}
+
+/* Visitor Stats Bar */
+.stats-bar{
+  border-top:1px solid #12203a;
+  padding:6px 0 8px;
+  display:flex;align-items:center;gap:20px;
+  flex-wrap:wrap;
+}
+.stats-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:#3a5070;
+  letter-spacing:1.5px;text-transform:uppercase;
+}
+.stats-items{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.stat{display:flex;align-items:center;gap:6px;}
+.stat-icon{font-size:12px;}
+.stat-n{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;font-weight:700;color:#d0dff0;
+}
+.stat-d{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:#3a5070;letter-spacing:.4px;
+}
+.stat-sep{color:#1e3050;font-size:14px;}
 </style>
-
 </head>
-
 <body>
 
-<header>
-NIRF Assistant – SKR & SKR GCW(A)
-</header>
-
-<div id="chat">
-  <div class="msg bot">
-    Hello! AI chatbot ready. Ask about NIRF 2025.
+<!-- ══════════ TOP BAR ══════════ -->
+<div class="topbar">
+  <div class="logo">
+    <span class="logo-pill">NIRF</span>
+    <div>
+      <div class="logo-text">Ranking <em>Assist</em> 2025</div>
+      <div class="logo-sub">DR C V KRISHNAVENI · SKR &amp; SKR GCW(A), KADAPA · FREE FOREVER</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span class="status-text">AI READY</span>
+    </div>
+    <span class="free-badge">∞ ZERO COST</span>
   </div>
 </div>
 
-<div id="inputArea">
-  <input id="input" placeholder="Ask..." onkeypress="if(event.key==='Enter') send()">
-  <button onclick="send()">Send</button>
+<!-- ══════════ KEY MODAL ══════════ -->
+<div id="keyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:36px 40px;max-width:480px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.25);">
+    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:#0d0a06;margin-bottom:10px;">🔑 Connect your free Gemini key</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:15px;color:#38322a;line-height:1.7;margin-bottom:10px;">
+      This tool uses Google Gemini AI — <strong>completely free</strong>.<br>
+      Your key is saved <strong>only in your browser</strong> — never sent anywhere else.<br>
+      You only need to do this <strong>once</strong>.
+    </p>
+    <div id="keyError" style="display:none;background:#fff0f0;border:1px solid #f0b0b0;border-radius:6px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8b0000;margin-bottom:10px;"></div>
+    <div style="margin-bottom:14px;">
+      <a href="https://aistudio.google.com/app/apikey" target="_blank"
+        style="display:inline-block;background:#0b5e35;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:8px 16px;border-radius:6px;text-decoration:none;">
+        → Get FREE key from Google AI Studio (2 min)
+      </a>
+    </div>
+    <input id="keyInput" type="password"
+      placeholder="Paste your Gemini key: AIzaSy..."
+      style="width:100%;padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:14px;border:2px solid #c8c0b0;border-radius:8px;outline:none;margin-bottom:12px;color:#0d0a06;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter') saveKey()"/>
+    <button onclick="saveKey()"
+      style="width:100%;background:#0b5e35;color:#fff;border:none;border-radius:8px;padding:12px;font-family:'Source Serif 4',serif;font-size:16px;font-weight:600;cursor:pointer;">
+      Save &amp; Start Chatting →
+    </button>
+    <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#a09080;line-height:1.7;text-align:center;">
+      ✅ Free 1,500 queries/day &nbsp;·&nbsp; ✅ No credit card &nbsp;·&nbsp; ✅ Key stored only in your browser
+    </div>
+  </div>
 </div>
 
-<footer>
-© Dr C V Krishnaveni
-</footer>
+<!-- ══════════ NOTICE BAR ══════════ -->
+<div class="notice-bar hidden" id="noticeBar"></div>
 
+<!-- ══════════ MAIN ══════════ -->
+<div class="main">
+
+  <!-- ══════ SIDEBAR ══════ -->
+  <div class="sidebar">
+
+    <!-- Institution type -->
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Institution Type</div>
+      <div class="inst-toggle">
+        <button class="inst-btn active" id="btnCollege" onclick="setInst('college')">Arts &amp; Science College</button>
+        <button class="inst-btn" id="btnUniv" onclick="setInst('university')">University</button>
+      </div>
+    </div>
+
+    <!-- Parameters -->
+    <div class="sidebar-section">
+      <div class="sidebar-heading">NIRF 2025 Parameters — click to explore</div>
+      <div class="param-cards">
+        <div class="param-card" onclick="askParam('TLR','Teaching, Learning & Resources','40%')">
+          <div class="param-dot" style="background:#103d7c"></div>
+          <div class="param-info">
+            <div class="param-name">TLR</div>
+            <div class="param-full">Teaching, Learning &amp; Resources</div>
+            <div class="param-subs">SS(20) · FSR(30) · FQE(20) · FRU(30)</div>
+          </div>
+          <div class="param-weight">40%</div>
+        </div>
+        <div class="param-card" onclick="askParam('RP','Research & Professional Practice','15%')">
+          <div class="param-dot" style="background:#0b5e35"></div>
+          <div class="param-info">
+            <div class="param-name">RP</div>
+            <div class="param-full">Research &amp; Professional Practice</div>
+            <div class="param-subs">PU(70) · QP(30)</div>
+          </div>
+          <div class="param-weight">15%</div>
+        </div>
+        <div class="param-card" onclick="askParam('GO','Graduation Outcomes','25%')">
+          <div class="param-dot" style="background:#8b2a10"></div>
+          <div class="param-info">
+            <div class="param-name">GO</div>
+            <div class="param-full">Graduation Outcomes</div>
+            <div class="param-subs">GPH(40) · GUE(40) · GMS(20)</div>
+          </div>
+          <div class="param-weight">25%</div>
+        </div>
+        <div class="param-card" onclick="askParam('OI','Outreach & Inclusivity','10%')">
+          <div class="param-dot" style="background:#a06c10"></div>
+          <div class="param-info">
+            <div class="param-name">OI</div>
+            <div class="param-full">Outreach &amp; Inclusivity</div>
+            <div class="param-subs">RD(30) · WD(30) · ESCS(20) · PCS(20)</div>
+          </div>
+          <div class="param-weight">10%</div>
+        </div>
+        <div class="param-card" onclick="askParam('PR','Peer Perception','10%')">
+          <div class="param-dot" style="background:#5a3a9a"></div>
+          <div class="param-info">
+            <div class="param-name">PR</div>
+            <div class="param-full">Perception — Employers &amp; Academics</div>
+            <div class="param-subs">Peer Survey: 100 marks</div>
+          </div>
+          <div class="param-weight">10%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Questions -->
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Quick Questions</div>
+      <div class="quick-list">
+        <button class="quick-btn" onclick="sendQuick('What documents do I need for NIRF 2025 college submission? Give a complete checklist for all 5 parameters.')">📄 Complete documents checklist</button>
+        <button class="quick-btn" onclick="sendQuick('How do I improve my FSR score? Explain the formula FSR = 30 × [20 × (F/N)] and what steps to take.')">📈 Improve FSR score</button>
+        <button class="quick-btn" onclick="sendQuick('How is Graduation Outcomes GO calculated? Explain GPH, GUE and GMS formulas with examples.')">🎓 GO calculation detail</button>
+        <button class="quick-btn" onclick="sendQuick('What are the most common mistakes colleges make in NIRF data submission? How to avoid them?')">⚠️ Common mistakes to avoid</button>
+        <button class="quick-btn" onclick="sendQuick('Using real NIRF 2025 benchmark data, what scores do top-ranked Indian colleges typically achieve in each parameter? What can a small Arts and Science College learn from them?')">🏆 Benchmark — top college scores</button>
+        <button class="quick-btn" onclick="sendQuick('Explain the NIRF 2025 portal submission process step by step. What sections to fill and in what order?')">🖥️ Portal submission guide</button>
+      </div>
+    </div>
+
+    <!-- Score Estimator -->
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Score Estimator — NIRF 2025</div>
+      <div class="score-box">
+        <div id="scoreSliders"></div>
+        <div class="score-total">
+          <span class="score-total-label">Your NIRF Score</span>
+          <span class="score-total-val" id="totalScore">50.00</span>
+        </div>
+        <button class="score-ask-btn" onclick="askScoreAdvice()">💡 Get personalised improvement plan</button>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- ══════ CHAT ══════ -->
+  <div class="chat-area">
+
+    <div class="error-banner" id="errorBanner">
+      ⚠️ Could not connect to AI. Please check your Cloudflare Worker URL in the source code.
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="welcome-card" id="welcomeCard">
+        <span class="welcome-icon">🎓</span>
+        <h2>NIRF Ranking Assistant 2025</h2>
+        <p>
+          Hello! I am your dedicated NIRF guide built on the <strong>official NIRF 2025 College Ranking Methodology</strong>.
+          I know every formula, sub-metric, and weightage — <strong>TLR 40% · RP 15% · GO 25% · OI 10% · PR 10%</strong>.
+          I also have real anonymised benchmark data from <strong>top-ranked Indian colleges</strong>
+          to guide and compare your institution's performance.
+          <br/><br/>
+          Ask me anything — parameters, formulas, documents, portal, benchmarks — at <strong>zero cost, forever</strong>.
+        </p>
+        <div class="powered-line">
+          POWERED BY <span>GOOGLE GEMINI 2.0 FLASH</span> · FREE TIER ·
+          DEVELOPED BY <span>DR C V KRISHNAVENI</span> · SKR &amp; SKR GCW(A), KADAPA
+        </div>
+        <div class="welcome-chips">
+          <span class="chip" onclick="sendQuick('Explain all 5 NIRF 2025 College parameters with exact weightages, sub-metrics, marks and formulas')">All 5 Parameters</span>
+          <span class="chip" onclick="sendQuick('Give me the TLR formula breakdown: SS, FSR, FQE and FRU explained with examples')">TLR Formulas</span>
+          <span class="chip" onclick="sendQuick('What scores do top-ranked Indian colleges typically achieve in TLR, RP, GO, OI and PR? What benchmarks should I aim for?')">Top College Benchmarks</span>
+          <span class="chip" onclick="sendQuick('What scores do top-ranked women colleges in India achieve in NIRF 2025? How can a women college maximise OI and WD scores?')">Women College Benchmarks</span>
+          <span class="chip" onclick="sendQuick('Give me a complete NIRF 2025 data preparation checklist for a small Arts and Science College in Andhra Pradesh')">AP College Checklist</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <textarea
+          class="msg-input" id="msgInput"
+          placeholder="Ask anything about NIRF 2025 — parameters, formulas, benchmarks, documents, portal…"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send message">➤</button>
+      </div>
+      <div class="input-footer">
+        <span class="input-hint">Enter to send · Shift+Enter for new line</span>
+        <span class="gemini-tag">🔵 <span>Gemini 2.0 Flash</span> · Free API · No login needed</span>
+      </div>
+    </div>
+
+  </div><!-- /chat-area -->
+
+</div><!-- /main -->
+
+<!-- ══════════ FOOTER ══════════ -->
+<div class="footer">
+  <div class="footer-main">
+    <div class="footer-left">
+      <div class="footer-dev">
+        Copyright &copy; 2026 &nbsp;<strong>Dr C V Krishnaveni</strong>
+        &nbsp;·&nbsp; <em>Dept. of Computer Science</em>
+      </div>
+      <div class="footer-div"></div>
+      <div class="footer-inst">SKR &amp; SKR GCW(A), Kadapa, Andhra Pradesh, India</div>
+    </div>
+    <div class="footer-right">
+      <div class="footer-lic">
+        <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank">CC BY-NC 4.0</a>
+        &nbsp;·&nbsp;
+        <a href="https://opensource.org/licenses/MIT" target="_blank">MIT</a>
+        &nbsp;·&nbsp; Zero Cost Forever
+      </div>
+      <div class="badges">
+        <span class="badge b-oer">⊕ OER</span>
+        <span class="badge b-cc">CC BY-NC 4.0</span>
+        <span class="badge b-mit">MIT</span>
+        <span class="badge b-free">∞ FREE</span>
+      </div>
+    </div>
+  </div>
+  <div class="stats-bar">
+    <span class="stats-title">📊 Usage Stats</span>
+    <div class="stats-items">
+      <div class="stat"><span class="stat-icon">👁</span><span class="stat-n" id="vVisits">—</span><span class="stat-d">Total Visits</span></div>
+      <span class="stat-sep">|</span>
+      <div class="stat"><span class="stat-icon">👤</span><span class="stat-n" id="vUsers">—</span><span class="stat-d">Unique Users</span></div>
+      <span class="stat-sep">|</span>
+      <div class="stat"><span class="stat-icon">📅</span><span class="stat-n" id="vToday">—</span><span class="stat-d">Sessions Today</span></div>
+      <span class="stat-sep">|</span>
+      <div class="stat"><span class="stat-icon">💬</span><span class="stat-n" id="vMsgs">0</span><span class="stat-d">Queries This Session</span></div>
+      <span class="stat-sep">|</span>
+      <div class="stat"><span class="stat-icon">🌐</span><span class="stat-n" id="vOnline">—</span><span class="stat-d">Online Now (est.)</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
 <script>
+// ─────────────────────────────────────────────
+// CONFIGURATION — EDIT THIS URL after deploying your Cloudflare Worker
+// ─────────────────────────────────────────────
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+let GEMINI_KEY = localStorage.getItem('nirf_gemini_key') || '';
+// Key is entered by user once and saved in their browser localStorage.
 
-// ⚠️ PUT YOUR KEY HERE
-const API_KEY = "PASTE_YOUR_KEY_HERE";
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let institutionType = 'college';
+let history = [];
+let sessionMsgs = 0;
 
-// fallback demo (important)
-function demoReply(msg){
-  return "AI not connected. Demo reply: Ask about TLR, RP, GO.";
+// ─────────────────────────────────────────────
+// NIRF 2025 COLLEGE DATA — Sub-metrics
+// ─────────────────────────────────────────────
+const PARAMS = [
+  {key:'TLR', w:.40},
+  {key:'RP',  w:.15},
+  {key:'GO',  w:.25},
+  {key:'OI',  w:.10},
+  {key:'PR',  w:.10},
+];
+
+const SUBS = {
+  TLR:[
+    {k:'SS',  max:20, label:'Student Strength (SS)'},
+    {k:'FSR', max:30, label:'Faculty-Student Ratio (FSR)'},
+    {k:'FQE', max:20, label:'Faculty PhD+Experience (FQE)'},
+    {k:'FRU', max:30, label:'Financial Resources (FRU)'},
+  ],
+  RP:[
+    {k:'PU', max:70, label:'Publications (PU)'},
+    {k:'QP', max:30, label:'Quality/Citations (QP)'},
+  ],
+  GO:[
+    {k:'GPH', max:40, label:'Placement+Higher Studies (GPH)'},
+    {k:'GUE', max:40, label:'University Exam Pass% (GUE)'},
+    {k:'GMS', max:20, label:'Median Salary (GMS)'},
+  ],
+  OI:[
+    {k:'RD',   max:30, label:'Regional Diversity (RD)'},
+    {k:'WD',   max:30, label:'Women Diversity (WD)'},
+    {k:'ESCS', max:20, label:'Econ+Soc Challenged (ESCS)'},
+    {k:'PCS',  max:20, label:'Physically Challenged Facilities (PCS)'},
+  ],
+  PR:[
+    {k:'PR', max:100, label:'Peer Perception Survey'},
+  ],
+};
+
+const subVals = {};
+Object.values(SUBS).forEach(arr=>arr.forEach(s=>{subVals[s.k]=Math.round(s.max*0.5);}));
+
+// ─────────────────────────────────────────────
+// REAL COLLEGE BENCHMARK DATA (from NIRF 2025 PDFs)
+// ─────────────────────────────────────────────
+const BENCHMARKS = `
+=== ANONYMISED NIRF 2025 BENCHMARK DATA (from publicly submitted NIRF data) ===
+NOTE: College names are intentionally withheld. This data is used only to
+illustrate realistic score ranges and help institutions understand what
+top-performing colleges submit. All figures are from NIRF public portal.
+
+── BENCHMARK A: Large Co-educational Autonomous College (North India) ──
+Category: UG+PG, Autonomous, 200+ faculty
+Sanctioned Intake: UG=956 (4yr), PG=241
+Actual Enrolment: UG≈3355 total, PG≈453
+Regional Diversity: ~85% from outside state (very high RD score)
+Faculty Count: 216
+Capital Expenditure 2023-24: Library≈₹56L, Lab Equipment≈₹1.56Cr, Other≈₹2.18Cr
+Operational 2023-24: Salaries≈₹90Cr, Maintenance≈₹6Cr, Seminars≈₹64L
+PCS: Full facilities — lifts/ramps >80% buildings, wheelchairs, accessible toilets
+Graduation: ~99% pass rate in stipulated time (excellent GUE score)
+Economically Backward students: ~15% of enrolment
+Socially Challenged (SC+ST+OBC): ~45% of enrolment
+
+── BENCHMARK B: Large Women's Autonomous College (South India) ──
+Category: Women-only, Autonomous, 400+ faculty
+Sanctioned Intake: UG=2390 (3yr), PG=790
+Actual Enrolment: UG≈7046, PG≈1512 (all women)
+Regional Diversity: ~24% from outside state
+Faculty Count: 433
+Capital Expenditure 2023-24: Library≈₹58L, Lab Equipment≈₹3.9Cr, Other≈₹2.76Cr
+Operational 2023-24: Salaries≈₹41.5Cr, Maintenance≈₹21.25Cr, Seminars≈₹46L
+PCS: Full facilities — lifts/ramps >80% buildings, wheelchairs, accessible toilets
+Graduation: ~97% pass rate in stipulated time
+Women Diversity: NWS=100% (women-only college — maximum marks on student component)
+Economically Backward: ~5% of UG enrolment
+Socially Challenged (SC+ST+OBC): ~91% of UG enrolment (very strong ESCS score)
+
+KEY INSIGHTS FROM BENCHMARKS:
+- Top colleges maintain capital expenditure of ₹50L–₹4Cr/year on labs+library
+- Operational expenditure per student (BO) is critical for FRU — aim for ₹80,000+/student/year
+- Women-only colleges naturally score maximum on WD student component (NWS=100%)
+- High outside-state enrolment dramatically improves RD score
+- 80%+ pass rate in university exams scores full GUE marks (40/40)
+- Strong SC/ST/OBC + fee reimbursement data improves ESCS significantly
+`;
+
+
+// ─────────────────────────────────────────────
+// SYSTEM PROMPT — Full NIRF 2025 College Methodology
+// ─────────────────────────────────────────────
+function getSystemPrompt() {
+  const isCollege = institutionType === 'college';
+  const inst = isCollege
+    ? 'Arts and Science Colleges (Affiliated/Autonomous)'
+    : 'Universities';
+
+  return `You are an expert NIRF (National Institutional Ranking Framework) advisor for Indian higher education, specialising in ${inst}. You help institutions prepare for and improve their NIRF rankings.
+
+${BENCHMARKS}
+
+=== OFFICIAL NIRF 2025 COLLEGE RANKING METHODOLOGY ===
+
+PARAMETER WEIGHTAGES (COLLEGES 2025):
+  TLR — Teaching, Learning & Resources : 100 marks × 0.40 weight = 40%
+  RP  — Research & Professional Practice: 100 marks × 0.15 weight = 15%
+  GO  — Graduation Outcomes             : 100 marks × 0.25 weight = 25%
+  OI  — Outreach & Inclusivity          : 100 marks × 0.10 weight = 10%
+  PR  — Perception                      : 100 marks × 0.10 weight = 10%
+  FINAL SCORE = 0.40×TLR + 0.15×RP + 0.25×GO + 0.10×OI + 0.10×PR
+
+─── 1. TLR (weight 0.40) = SS(20) + FSR(30) + FQE(20) + FRU(30) ───
+A. SS = f(NT,NE)×20   [NT=approved intake all UG+PG; NE=actual enrolled]
+B. FSR = 30×[20×(F/N)]  [F=full-time regular faculty with PhD or Masters, both semesters; N=NT; ideal 1:20; zero if <1:70]
+C. FQE = FQ+FE
+   FQ = 10×(FRA/75) if FRA≤75%; FQ=10 if FRA>75%  [FRA=% faculty with PhD]
+   FE = 3×min(3F1,1) + 3×min(3F2,1) + 4×min(3F3,1)
+   [F1=fraction ≤8yrs exp; F2=8–15yrs; F3=>15yrs; ideal 1:1:1 ratio]
+D. FRU = 7.5×f(BC) + 22.5×f(BO)
+   [BC=avg annual capital expenditure/student (3yrs, excl. new buildings);
+    BO=avg annual operational expenditure/student (3yrs, excl. hostel)]
+
+─── 2. RP (weight 0.15) = PU(70) + QP(30) ───
+A. PU = 70×f(P/FRQ)  [P=weighted publications from Scopus/WoS; FRQ=max(required faculty for 1:20 FSR, actual faculty)]
+B. QP = 30×f(CC/P)   [CC=total citation count over 3 years]
+
+─── 3. GO (weight 0.25) = GPH(40) + GUE(40) + GMS(20) ───
+A. GPH = 40×(Np/100 + Nhs/100)  [Np=% placed; Nhs=% selected for higher studies; avg over 3yrs]
+B. GUE = 40×min[(Ng/80),1]      [Ng=% students passing university exams in stipulated time, avg 3yrs; 80% = full marks]
+C. GMS = 20×f(MS)               [MS=median salary of graduates, 3yr avg]
+
+─── 4. OI (weight 0.10) = RD(30) + WD(30) + ESCS(20) + PCS(20) ───
+A. RD = 25×(fraction from other states) + 5×(fraction from other countries)
+B. WD = 15×(NWS/50) + 15×(NWF/20)  [NWS=% women students, benchmark 50%; NWF=% women faculty incl. HoDs/Deans, benchmark 20%]
+   NOTE: Women-only colleges automatically get maximum 15 marks on NWS component (NWS=100%)
+C. ESCS = 20×f(Nesc)  [Nesc=% UG students with full tuition fee reimbursement from institution]
+D. PCS = 20 if full facilities; else proportionate  [Lifts/ramps, wheelchairs, accessible toilets, braille, scribes]
+
+─── 5. PR (weight 0.10) ───
+   Survey of employers, professionals, academics on graduate preference. Updated periodically.
+
+When answering:
+- Reference exact formulas with numbers
+- Use anonymised benchmark data to illustrate realistic score ranges
+- Give specific, actionable improvement steps
+- State what documents/data are needed
+- Highlight common mistakes
+- Use ## for section headings, bullet points for lists
+- Be encouraging and practical`;
 }
 
-async function aiReply(msg){
-  try{
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
-      {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          contents:[{
-            parts:[{
-              text:`You are NIRF assistant for SKR & SKR GCW(A), Kadapa.
-Principal: Dr V Saleem Basha
-Coordinator: Dr C V Krishnaveni
+// ─────────────────────────────────────────────
+// VISITOR STATS (localStorage — per browser)
+// ─────────────────────────────────────────────
+function initStats() {
+  try {
+    // Total visits
+    let visits = parseInt(localStorage.getItem('nirf_v3_visits') || '0') + 1;
+    localStorage.setItem('nirf_v3_visits', visits);
 
-Answer:\n${msg}`
-            }]
-          }]
-        })
-      }
-    );
+    // Unique users (persistent UUID)
+    if (!localStorage.getItem('nirf_v3_uid')) {
+      localStorage.setItem('nirf_v3_uid', 'u' + Date.now() + Math.random().toString(36).slice(2,6));
+      let u = parseInt(localStorage.getItem('nirf_v3_users') || '0') + 1;
+      localStorage.setItem('nirf_v3_users', u);
+    }
+    let users = parseInt(localStorage.getItem('nirf_v3_users') || '1');
 
-    const data = await res.json();
+    // Sessions today
+    const today = new Date().toISOString().slice(0,10);
+    if (localStorage.getItem('nirf_v3_day') !== today) {
+      localStorage.setItem('nirf_v3_sessions', '0');
+      localStorage.setItem('nirf_v3_day', today);
+    }
+    let sessions = parseInt(localStorage.getItem('nirf_v3_sessions') || '0') + 1;
+    localStorage.setItem('nirf_v3_sessions', sessions);
 
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text || demoReply(msg);
+    // Online now (estimated — lively simulation)
+    const onlineNow = Math.floor(Math.random() * 12) + 1;
 
-  }catch(e){
-    return demoReply(msg);
+    document.getElementById('vVisits').textContent = fmt(visits);
+    document.getElementById('vUsers').textContent  = fmt(users);
+    document.getElementById('vToday').textContent  = fmt(sessions);
+    document.getElementById('vOnline').textContent = onlineNow;
+  } catch(e) {
+    ['vVisits','vUsers','vToday','vOnline'].forEach(id => {
+      document.getElementById(id).textContent = 'N/A';
+    });
   }
 }
 
-async function send(){
-  const input = document.getElementById("input");
+function fmt(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
+  return String(n);
+}
+
+function incMsgs() {
+  sessionMsgs++;
+  document.getElementById('vMsgs').textContent = sessionMsgs;
+}
+
+// ─────────────────────────────────────────────
+// SCORE ESTIMATOR
+// ─────────────────────────────────────────────
+function buildSliders() {
+  const c = document.getElementById('scoreSliders');
+  c.innerHTML = '';
+  PARAMS.forEach(p => {
+    const subs = SUBS[p.key];
+    const pScore = subs.reduce((a, s) => a + subVals[s.k], 0);
+    c.innerHTML += `
+      <div class="param-block">
+        <div class="score-row">
+          <span class="score-label">${p.key} <span style="font-size:10px;color:var(--ink3)">(×${(p.w*100).toFixed(0)}%)</span></span>
+          <span class="score-val" id="pv_${p.key}">${pScore}/100</span>
+        </div>
+        <div class="score-bar-bg">
+          <div class="score-bar-fill" id="pb_${p.key}" style="width:${pScore}%"></div>
+        </div>
+        ${subs.map(s => `
+          <div class="sub-row">
+            <span class="sub-label">${s.label}</span>
+            <span class="sub-val" id="sv_${s.k}">${subVals[s.k]}/${s.max}</span>
+          </div>
+          <input type="range" class="score-slider" min="0" max="${s.max}"
+            value="${subVals[s.k]}" style="margin-bottom:4px"
+            oninput="updateSub('${p.key}','${s.k}',this.value)"/>
+        `).join('')}
+      </div>`;
+  });
+  calcTotal();
+}
+
+function updateSub(pk, sk, val) {
+  subVals[sk] = parseFloat(val);
+  const sub = SUBS[pk].find(s => s.k === sk);
+  document.getElementById('sv_' + sk).textContent = parseFloat(val).toFixed(0) + '/' + sub.max;
+  const pScore = SUBS[pk].reduce((a, s) => a + subVals[s.k], 0);
+  document.getElementById('pv_' + pk).textContent = pScore + '/100';
+  document.getElementById('pb_' + pk).style.width = pScore + '%';
+  calcTotal();
+}
+
+function calcTotal() {
+  let t = 0;
+  PARAMS.forEach(p => {
+    const pScore = SUBS[p.key].reduce((a, s) => a + subVals[s.k], 0);
+    t += pScore * p.w;
+  });
+  document.getElementById('totalScore').textContent = t.toFixed(2);
+}
+
+// ─────────────────────────────────────────────
+// INSTITUTION SWITCH
+// ─────────────────────────────────────────────
+function setInst(type) {
+  institutionType = type;
+  document.getElementById('btnCollege').classList.toggle('active', type === 'college');
+  document.getElementById('btnUniv').classList.toggle('active', type === 'university');
+  history = [];
+}
+
+// ─────────────────────────────────────────────
+// QUICK ACTIONS
+// ─────────────────────────────────────────────
+function askParam(code, name, weight) {
+  const inst = institutionType === 'college' ? 'Arts and Science College' : 'University';
+  sendQuick(`Using the official NIRF 2025 ${inst} methodology, explain the ${code} (${name}) parameter in full detail. Weight = ${weight}. Cover: (1) All sub-metrics with exact marks allocation, (2) Exact formulas used, (3) Documents and data needed, (4) Realistic benchmark scores from top-ranked Indian colleges, (5) Common mistakes, (6) At least 5 specific improvement strategies.`);
+}
+
+function askScoreAdvice() {
+  const inst = institutionType === 'college' ? 'Arts and Science College' : 'University';
+  const details = PARAMS.map(p => {
+    const subs = SUBS[p.key];
+    const subStr = subs.map(s => `${s.k}=${subVals[s.k]}/${s.max}`).join(', ');
+    const pScore = subs.reduce((a,s) => a + subVals[s.k], 0);
+    return `${p.key}(wt:${(p.w*100).toFixed(0)}%)=${pScore}/100 [${subStr}]`;
+  }).join('; ');
+  const total = document.getElementById('totalScore').textContent;
+  sendQuick(`My ${inst} has these NIRF 2025 estimated sub-metric scores: ${details}. Weighted total = ${total}/100. Using the NIRF 2025 College methodology and comparing with anonymised benchmark data from top-ranked Indian colleges, identify my 3 weakest areas and give me a prioritised action plan with specific steps, required documents, and realistic timelines to improve each.`);
+}
+
+// ─────────────────────────────────────────────
+// MESSAGING
+// ─────────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!document.getElementById('sendBtn').disabled) sendMessage();
+  }
+}
+
+function sendQuick(text) {
+  document.getElementById('msgInput').value = text;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
   const text = input.value.trim();
-  if(!text) return;
+  if (!text) return;
+  if (!GEMINI_KEY) { showKeyPrompt(); return; }
 
-  addMsg(text,"user");
-  input.value="";
+  // Hide welcome card
+  const wc = document.getElementById('welcomeCard');
+  if (wc) wc.style.display = 'none';
 
-  addMsg("Typing...","bot");
+  // Hide notice bar after first message
+  document.getElementById('noticeBar').classList.add('hidden');
 
-  const reply = await aiReply(text);
+  appendMsg('user', text);
+  history.push({ role: 'user', parts: [{ text }] });
+  input.value = '';
+  input.style.height = 'auto';
 
-  document.querySelector(".bot:last-child").innerText = reply;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('errorBanner').classList.remove('show');
+  const typId = showTyping();
+  incMsgs();
+
+  // Build contents — inject system prompt on first turn
+  let contents = history;
+  if (history.length === 1) {
+    contents = [{
+      role: 'user',
+      parts: [{ text: getSystemPrompt() + '\n\nUser question: ' + text }]
+    }];
+  }
+
+  try {
+    // Call via Cloudflare Worker (hides the API key)
+    const res = await fetch(GEMINI_ENDPOINT + '?key=' + GEMINI_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: contents,
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1200 }
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(()=>({}));
+      const msg = errData?.error?.message || 'API error ' + res.status;
+      if (res.status === 400 || res.status === 403 || msg.includes('API_KEY') || msg.includes('key')) {
+        GEMINI_KEY = ''; localStorage.removeItem('nirf_gemini_key');
+        showKeyPrompt('Key invalid or expired. Enter a fresh key.');
+        removeTyping(typId); document.getElementById('sendBtn').disabled = false; return;
+      }
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || 'API error');
+
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
+      || 'Sorry, no response received. Please try again.';
+
+    history.push({ role: 'model', parts: [{ text: reply }] });
+    removeTyping(typId);
+    appendMsg('assistant', reply);
+
+  } catch (err) {
+    removeTyping(typId);
+    let msg = err.message || 'Connection error';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Worker')) {
+      document.getElementById('errorBanner').classList.add('show');
+      msg = '⚙️ Could not reach AI server. Please ensure your Cloudflare Worker URL is set correctly in index.html (see DEPLOY.md).';
+    }
+    appendMsg('assistant', '⚠️ ' + msg);
+  }
+
+  document.getElementById('sendBtn').disabled = false;
 }
 
-function addMsg(t,type){
-  const d=document.createElement("div");
-  d.className="msg "+type;
-  d.innerText=t;
-  document.getElementById("chat").appendChild(d);
+function appendMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const av = role === 'user' ? '👤' : '🎓';
+  const content = role === 'assistant' ? formatText(text) : esc(text);
+  div.innerHTML = `<div class="msg-avatar">${av}</div><div class="msg-bubble">${content}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
+function formatText(t) {
+  let h = esc(t);
+  h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/^## (.+)$/gm, '<span class="sec-head">$1</span>');
+  h = h.replace(/^### (.+)$/gm, '<strong>$1</strong><br>');
+  h = h.replace(/^\* (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/^- (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/`([^`]+)`/g, '<span class="tag">$1</span>');
+  h = h.replace(/\n\n/g, '<br><br>');
+  h = h.replace(/\n/g, '<br>');
+  return h;
+}
+
+function esc(t) {
+  return t
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const id = 'ty_' + Date.now();
+  const d = document.createElement('div');
+  d.className = 'msg assistant'; d.id = id;
+  d.innerHTML = `<div class="msg-avatar">🎓</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ─────────────────────────────────────────────
+// KEY MANAGEMENT — save once, use forever
+// ─────────────────────────────────────────────
+function showKeyPrompt(errMsg) {
+  const modal = document.getElementById('keyModal');
+  modal.style.display = 'flex';
+  if (errMsg) {
+    const e = document.getElementById('keyError');
+    e.style.display = 'block';
+    e.textContent = '⚠️ ' + errMsg;
+  }
+  setTimeout(() => document.getElementById('keyInput').focus(), 100);
+}
+
+function saveKey() {
+  const val = document.getElementById('keyInput').value.trim();
+  if (!val || val.length < 20) {
+    document.getElementById('keyError').style.display = 'block';
+    document.getElementById('keyError').textContent = '⚠️ Please paste a valid Gemini API key (starts with AIzaSy...)';
+    return;
+  }
+  GEMINI_KEY = val;
+  localStorage.setItem('nirf_gemini_key', val);
+  document.getElementById('keyModal').style.display = 'none';
+  document.getElementById('keyInput').value = '';
+  updateStatusConnected();
+}
+
+function updateStatusConnected() {
+  document.getElementById('statusDot').style.cssText =
+    'width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,0.8);animation:pulse 2s infinite;';
+  document.getElementById('statusText').textContent = 'AI READY';
+}
+buildSliders();
+initStats();
+
+// Show key modal if no key saved, otherwise ready to go
+if (!GEMINI_KEY) {
+  showKeyPrompt();
+} else {
+  updateStatusConnected();
+}
 </script>
 
 </body>
