@@ -20,7 +20,7 @@ ARCHITECTURE:
   worker.js   → Cloudflare Worker (free, hides API key)
   Gemini API  → Google AI Studio free tier (1M tokens/day)
 
-SETUP: Edit WORKER_URL below to point to your Cloudflare Worker.
+SETUP: Get free Gemini key at aistudio.google.com/app/apikey — paste when prompted.
 -->
 <head>
 <meta charset="UTF-8"/>
@@ -596,11 +596,38 @@ body::before{
   </div>
 </div>
 
-<!-- ══════════ NOTICE BAR ══════════ -->
-<div class="notice-bar" id="noticeBar">
-  ⚙ First-time setup: edit <strong>WORKER_URL</strong> in this file to point to your Cloudflare Worker.
-  See <a href="DEPLOY.md" target="_blank">DEPLOY.md</a> for 15-minute setup guide.
+<!-- ══════════ KEY MODAL ══════════ -->
+<div id="keyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:36px 40px;max-width:480px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.25);">
+    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:#0d0a06;margin-bottom:10px;">🔑 Connect your free Gemini key</div>
+    <p style="font-family:'Source Serif 4',serif;font-size:15px;color:#38322a;line-height:1.7;margin-bottom:10px;">
+      This tool uses Google Gemini AI — <strong>completely free</strong>.<br>
+      Your key is saved <strong>only in your browser</strong> — never sent anywhere else.<br>
+      You only need to do this <strong>once</strong>.
+    </p>
+    <div id="keyError" style="display:none;background:#fff0f0;border:1px solid #f0b0b0;border-radius:6px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8b0000;margin-bottom:10px;"></div>
+    <div style="margin-bottom:14px;">
+      <a href="https://aistudio.google.com/app/apikey" target="_blank"
+        style="display:inline-block;background:#0b5e35;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:8px 16px;border-radius:6px;text-decoration:none;">
+        → Get FREE key from Google AI Studio (2 min)
+      </a>
+    </div>
+    <input id="keyInput" type="password"
+      placeholder="Paste your Gemini key: AIzaSy..."
+      style="width:100%;padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:14px;border:2px solid #c8c0b0;border-radius:8px;outline:none;margin-bottom:12px;color:#0d0a06;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter') saveKey()"/>
+    <button onclick="saveKey()"
+      style="width:100%;background:#0b5e35;color:#fff;border:none;border-radius:8px;padding:12px;font-family:'Source Serif 4',serif;font-size:16px;font-weight:600;cursor:pointer;">
+      Save &amp; Start Chatting →
+    </button>
+    <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#a09080;line-height:1.7;text-align:center;">
+      ✅ Free 1,500 queries/day &nbsp;·&nbsp; ✅ No credit card &nbsp;·&nbsp; ✅ Key stored only in your browser
+    </div>
+  </div>
 </div>
+
+<!-- ══════════ NOTICE BAR ══════════ -->
+<div class="notice-bar hidden" id="noticeBar"></div>
 
 <!-- ══════════ MAIN ══════════ -->
 <div class="main">
@@ -800,8 +827,9 @@ body::before{
 // ─────────────────────────────────────────────
 // CONFIGURATION — EDIT THIS URL after deploying your Cloudflare Worker
 // ─────────────────────────────────────────────
-const WORKER_URL = 'https://nirf-assist.iqac-nirf-gdcw-kdp.workers.dev/';
-// Example: 'https://nirf-proxy.drkvrishnaveni.workers.dev'
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+let GEMINI_KEY = localStorage.getItem('nirf_gemini_key') || '';
+// Key is entered by user once and saved in their browser localStorage.
 
 // ─────────────────────────────────────────────
 // STATE
@@ -1116,6 +1144,7 @@ async function sendMessage() {
   const input = document.getElementById('msgInput');
   const text = input.value.trim();
   if (!text) return;
+  if (!GEMINI_KEY) { showKeyPrompt(); return; }
 
   // Hide welcome card
   const wc = document.getElementById('welcomeCard');
@@ -1145,7 +1174,7 @@ async function sendMessage() {
 
   try {
     // Call via Cloudflare Worker (hides the API key)
-    const res = await fetch(WORKER_URL, {
+    const res = await fetch(GEMINI_ENDPOINT + '?key=' + GEMINI_KEY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1154,9 +1183,17 @@ async function sendMessage() {
       })
     });
 
-    if (!res.ok) throw new Error('Worker returned ' + res.status);
+    if (!res.ok) {
+      const errData = await res.json().catch(()=>({}));
+      const msg = errData?.error?.message || 'API error ' + res.status;
+      if (res.status === 400 || res.status === 403 || msg.includes('API_KEY') || msg.includes('key')) {
+        GEMINI_KEY = ''; localStorage.removeItem('nirf_gemini_key');
+        showKeyPrompt('Key invalid or expired. Enter a fresh key.');
+        removeTyping(typId); document.getElementById('sendBtn').disabled = false; return;
+      }
+      throw new Error(msg);
+    }
     const data = await res.json();
-
     if (data.error) throw new Error(data.error.message || 'API error');
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
@@ -1234,48 +1271,46 @@ function removeTyping(id) {
 }
 
 // ─────────────────────────────────────────────
-// TEST WORKER CONNECTION ON PAGE LOAD
+// KEY MANAGEMENT — save once, use forever
 // ─────────────────────────────────────────────
-async function testWorker() {
-  if (WORKER_URL.includes('YOUR-WORKER')) return; // placeholder, skip
-  try {
-    // Send a tiny test POST to verify Worker is reachable
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: 'Say OK' }] }],
-        generationConfig: { maxOutputTokens: 5 }
-      })
-    });
-    if (res.ok) {
-      document.getElementById('noticeBar').classList.add('hidden');
-      console.log('✅ Worker connected successfully');
-    } else {
-      showWorkerError('Worker returned status ' + res.status);
-    }
-  } catch(e) {
-    showWorkerError(e.message);
+function showKeyPrompt(errMsg) {
+  const modal = document.getElementById('keyModal');
+  modal.style.display = 'flex';
+  if (errMsg) {
+    const e = document.getElementById('keyError');
+    e.style.display = 'block';
+    e.textContent = '⚠️ ' + errMsg;
   }
+  setTimeout(() => document.getElementById('keyInput').focus(), 100);
 }
 
-function showWorkerError(reason) {
-  const nb = document.getElementById('noticeBar');
-  nb.classList.remove('hidden');
-  nb.style.background = '#fff0f0';
-  nb.style.borderColor = 'rgba(180,0,0,0.3)';
-  nb.style.color = '#8b0000';
-  nb.innerHTML = `⚠️ Worker not reachable (${reason}). Check: (1) WORKER_URL in index.html is correct, (2) GEMINI_API_KEY secret is saved in Cloudflare Worker Settings → Variables and Secrets.`;
+function saveKey() {
+  const val = document.getElementById('keyInput').value.trim();
+  if (!val || val.length < 20) {
+    document.getElementById('keyError').style.display = 'block';
+    document.getElementById('keyError').textContent = '⚠️ Please paste a valid Gemini API key (starts with AIzaSy...)';
+    return;
+  }
+  GEMINI_KEY = val;
+  localStorage.setItem('nirf_gemini_key', val);
+  document.getElementById('keyModal').style.display = 'none';
+  document.getElementById('keyInput').value = '';
+  updateStatusConnected();
+}
+
+function updateStatusConnected() {
+  document.getElementById('statusDot').style.cssText =
+    'width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,0.8);animation:pulse 2s infinite;';
+  document.getElementById('statusText').textContent = 'AI READY';
 }
 buildSliders();
 initStats();
 
-// Check if worker URL is still placeholder
-if (WORKER_URL.includes('YOUR-WORKER')) {
-  document.getElementById('noticeBar').classList.remove('hidden');
+// Show key modal if no key saved, otherwise ready to go
+if (!GEMINI_KEY) {
+  showKeyPrompt();
 } else {
-  document.getElementById('noticeBar').classList.add('hidden');
-  testWorker(); // auto-test connection on page load
+  updateStatusConnected();
 }
 </script>
 
