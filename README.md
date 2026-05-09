@@ -153,6 +153,9 @@ If your college has a domain (e.g. `skrgcw.ac.in`):
 | CORS error in browser console | Re-deploy worker.js — it has the CORS headers built in |
 
 ---
+**Repository Note**
+Developed and maintained by Dr. C. V. Krishnaveni for academic and IQAC automation purposes. This repository may be migrated to the author’s personal GitHub account for continuity and long-term maintenance.
+
 
 ## Support
 
